@@ -35,12 +35,6 @@ struct usb_bus_ {
 	struct usb_device_ *root_dev;
 };
 
-#define STR(s) #s
-#define PASSTHROUGH(name, ret_type, param, args) ret_type name##_ param { \
-	PRINT_CALL(name) \
-	return name args; \
-}
-
 // XXX what was the thread model of libusb0?
 static struct usb_bus_ *busses = NULL;
 static std::map<struct usb_device_ *, struct usb_device *> usb_device_map;
@@ -95,6 +89,18 @@ static struct usb_device *find_device_ref(struct usb_device_ *mapped){
 }
 
 extern "C" {
+	#ifdef __x86_64__
+	#define CALL_CONVENTION __attribute__ ((ms_abi))
+	#else
+	#define CALL_CONVENTION __attribute__ ((cdecl))
+	#endif
+
+	#define STR(s) #s
+	#define PASSTHROUGH(name, ret_type, param, args) CALL_CONVENTION ret_type name##_ param { \
+		PRINT_CALL(name) \
+		return name args; \
+	}
+
 	PASSTHROUGH(usb_bulk_read, int, (usb_dev_handle *dev, int ep, char *bytes, int size, int timeout), (dev, ep, bytes, size, timeout))
 	PASSTHROUGH(usb_bulk_write, int, (usb_dev_handle *dev, int ep, const char *bytes, int size, int timeout), (dev, ep, bytes, size, timeout))
 	PASSTHROUGH(usb_claim_interface, int, (usb_dev_handle *dev, int interface), (dev, interface))
@@ -108,7 +114,7 @@ extern "C" {
 	PASSTHROUGH(usb_reset, int, (usb_dev_handle *dev), (dev))
 	PASSTHROUGH(usb_set_configuration, int, (usb_dev_handle *dev, int configuration), (dev, configuration))
 
-	struct usb_bus_ * usb_get_busses_(){
+	CALL_CONVENTION struct usb_bus_ * usb_get_busses_(){
 		cleanup_busses_devices();
 
 		struct usb_bus *bus_first = usb_get_busses();
@@ -168,7 +174,7 @@ extern "C" {
 		return busses;
 	}
 
-	usb_dev_handle *usb_open_(struct usb_device_ *dev){
+	CALL_CONVENTION usb_dev_handle *usb_open_(struct usb_device_ *dev){
 		struct usb_device *ref = find_device_ref(dev);
 		if(ref == NULL){
 			return NULL;
