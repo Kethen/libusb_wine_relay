@@ -91,6 +91,8 @@ static struct usb_device *find_device_ref(struct usb_device_ *mapped){
 extern "C" {
 	#ifdef __x86_64__
 	#define CALL_CONVENTION __attribute__ ((ms_abi))
+	#elif defined(__aarch64__)
+	#define CALL_CONVENTION __attribute__ ((ms_abi))
 	#else
 	#define CALL_CONVENTION __attribute__ ((cdecl))
 	#endif
